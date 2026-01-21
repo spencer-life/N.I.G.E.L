@@ -68,6 +68,7 @@ const command: Command = {
       );
       await interaction.reply({ embeds: [embed], ephemeral: true });
       await DrillService.abandonSession(interaction.user.id);
+      return; // Stop here - user needs to run /practice again
     }
 
     await interaction.deferReply({ ephemeral: true });

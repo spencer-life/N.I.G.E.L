@@ -32,6 +32,7 @@ const command: Command = {
         ephemeral: true,
       });
       await DrillService.abandonSession(interaction.user.id);
+      return; // Stop here - user needs to run /drill again
     }
 
     // Show drill invitation embed
