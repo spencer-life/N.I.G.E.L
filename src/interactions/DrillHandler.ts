@@ -54,7 +54,7 @@ export class DrillHandler {
    */
   private static async startDrill(interaction: ButtonInteraction): Promise<void> {
     // Check for existing session
-    if (DrillService.hasActiveSession(interaction.user.id)) {
+    if (await DrillService.hasActiveSession(interaction.user.id)) {
       await interaction.reply({
         content: "You have an unfinished drill. Complete it first, or it will be abandoned.",
         ephemeral: true,
@@ -121,8 +121,8 @@ export class DrillHandler {
   private static async sendNextQuestion(interaction: ButtonInteraction): Promise<void> {
     await interaction.deferUpdate();
 
-    const progress = DrillService.getProgress(interaction.user.id);
-    const question = DrillService.getCurrentQuestion(interaction.user.id);
+    const progress = await DrillService.getProgress(interaction.user.id);
+    const question = await DrillService.getCurrentQuestion(interaction.user.id);
 
     if (!progress || !question) {
       await interaction.editReply({
@@ -180,11 +180,18 @@ export class DrillHandler {
     const options = question.options || [];
     const labels = ["A", "B", "C", "D"];
 
+    // Discord button labels max out at 80 characters
     options.forEach((opt, i) => {
+      const prefix = `${labels[i]}: `;
+      const maxLength = 80 - prefix.length;
+      const truncated = opt.length > maxLength 
+        ? opt.substring(0, maxLength - 3) + "..." 
+        : opt;
+      
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(`drill_answer_${i}`)
-          .setLabel(`${labels[i]}: ${opt}`)
+          .setLabel(`${prefix}${truncated}`)
           .setStyle(ButtonStyle.Secondary)
       );
     });

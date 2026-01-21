@@ -26,7 +26,7 @@ const command: Command = {
     const questionCount = interaction.options.getInteger("questions") ?? 10;
 
     // Check for existing session
-    if (DrillService.hasActiveSession(interaction.user.id)) {
+    if (await DrillService.hasActiveSession(interaction.user.id)) {
       await interaction.reply({
         content: "You have an unfinished drill. Abandoning previous session.",
         ephemeral: true,

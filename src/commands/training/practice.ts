@@ -61,7 +61,7 @@ const command: Command = {
     const length = interaction.options.getInteger("length", true);
 
     // Check for existing session
-    if (DrillService.hasActiveSession(interaction.user.id)) {
+    if (await DrillService.hasActiveSession(interaction.user.id)) {
       const embed = errorEmbed(
         "Active Session",
         "You have an unfinished session. Complete it first, or it will be abandoned."

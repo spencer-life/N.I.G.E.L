@@ -38,11 +38,81 @@ export interface AnswerResult {
   } | null;
 }
 
-// In-memory session store
-// MVP: For production, consider Redis or DB-backed sessions
+// In-memory cache of session state (backed by database for persistence)
+// Sessions are stored in DB metadata column and loaded on demand
 const activeDrills = new Map<string, DrillSessionState>();
 
+// Session timeout (30 minutes of inactivity)
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000;
+
 export class DrillService {
+  /**
+   * Loads an active session from the database if it exists.
+   * Returns null if no active session found or if session has timed out.
+   */
+  private static async loadSessionFromDB(discordUserId: string): Promise<DrillSessionState | null> {
+    // Get user ID first
+    const user = await UserRepository.getByDiscordId(discordUserId);
+    if (!user) return null;
+
+    // Find active session
+    const { data: session } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!session) return null;
+
+    // Check if session has timed out (30 minutes of inactivity)
+    const startTime = session.metadata?.startTime as number;
+    if (startTime && Date.now() - startTime > SESSION_TIMEOUT_MS) {
+      console.log(`[DrillService] Session ${session.id} timed out, abandoning`);
+      await this.abandonSessionBySessionId(session.id);
+      return null;
+    }
+
+    // Reconstruct state from metadata
+    const state: DrillSessionState = {
+      sessionId: session.id,
+      userId: discordUserId,
+      internalUserId: user.id,
+      questions: session.metadata.questions || [],
+      currentIndex: session.metadata.currentIndex || 0,
+      score: session.metadata.score || 0,
+      xpEarned: session.metadata.xpEarned || 0,
+      startTime: startTime || Date.now(),
+      answers: session.metadata.answers || [],
+    };
+
+    return state;
+  }
+
+  /**
+   * Saves the current session state to the database.
+   */
+  private static async saveSessionToDB(state: DrillSessionState): Promise<void> {
+    if (!state.sessionId) return;
+
+    await supabase
+      .from("sessions")
+      .update({
+        metadata: {
+          questions: state.questions,
+          currentIndex: state.currentIndex,
+          score: state.score,
+          xpEarned: state.xpEarned,
+          startTime: state.startTime,
+          answers: state.answers,
+          lastActivity: Date.now(),
+        },
+      })
+      .eq("id", state.sessionId);
+  }
+
   /**
    * Starts a new drill session for a user.
    * Creates user if they don't exist.
@@ -60,14 +130,24 @@ export class DrillService {
     // Generate questions dynamically from knowledge base
     const selectedQuestions = await QuestionGeneratorService.generateQuestions(count);
 
-    // Create session record in database
+    const startTime = Date.now();
+
+    // Create session record in database with full state
     const { data: session } = await supabase
       .from("sessions")
       .insert({
         user_id: user.id,
         session_type: "drill",
         status: "active",
-        metadata: { question_count: selectedQuestions.length },
+        metadata: {
+          questions: selectedQuestions,
+          currentIndex: 0,
+          score: 0,
+          xpEarned: 0,
+          startTime,
+          answers: [],
+          lastActivity: startTime,
+        },
       })
       .select()
       .single();
@@ -80,7 +160,7 @@ export class DrillService {
       currentIndex: 0,
       score: 0,
       xpEarned: 0,
-      startTime: Date.now(),
+      startTime,
       answers: [],
     };
 
@@ -109,7 +189,9 @@ export class DrillService {
       filters.difficulty
     );
 
-    // Create session record
+    const startTime = Date.now();
+
+    // Create session record with full state
     const { data: session } = await supabase
       .from("sessions")
       .insert({
@@ -117,7 +199,13 @@ export class DrillService {
         session_type: "practice",
         status: "active",
         metadata: {
-          question_count: selectedQuestions.length,
+          questions: selectedQuestions,
+          currentIndex: 0,
+          score: 0,
+          xpEarned: 0,
+          startTime,
+          answers: [],
+          lastActivity: startTime,
           framework_filter: filters.frameworks,
           difficulty_filter: filters.difficulty,
         },
@@ -133,7 +221,7 @@ export class DrillService {
       currentIndex: 0,
       score: 0,
       xpEarned: 0,
-      startTime: Date.now(),
+      startTime,
       answers: [],
     };
 
@@ -143,16 +231,37 @@ export class DrillService {
 
   /**
    * Gets the current session state for a user.
+   * Loads from database if not in memory (survives container restarts).
    */
-  static getSession(discordUserId: string): DrillSessionState | undefined {
-    return activeDrills.get(discordUserId);
+  static async getSession(discordUserId: string): Promise<DrillSessionState | undefined> {
+    // Check memory first
+    let state = activeDrills.get(discordUserId);
+    if (state) return state;
+
+    // Try loading from database
+    state = await this.loadSessionFromDB(discordUserId);
+    if (state) {
+      activeDrills.set(discordUserId, state);
+      console.log(`[DrillService] Restored session ${state.sessionId} from database`);
+    }
+    return state;
   }
 
   /**
    * Checks if a user has an active session.
+   * Checks both memory and database.
    */
-  static hasActiveSession(discordUserId: string): boolean {
-    return activeDrills.has(discordUserId);
+  static async hasActiveSession(discordUserId: string): Promise<boolean> {
+    // Check memory first
+    if (activeDrills.has(discordUserId)) return true;
+
+    // Check database
+    const state = await this.loadSessionFromDB(discordUserId);
+    if (state) {
+      activeDrills.set(discordUserId, state);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -165,7 +274,8 @@ export class DrillService {
     username?: string,
     displayName?: string
   ): Promise<AnswerResult> {
-    const state = activeDrills.get(discordUserId);
+    // Try to get session (including from DB if needed)
+    let state = await this.getSession(discordUserId);
     if (!state) {
       throw new Error("No active drill session. Start a new drill to continue.");
     }
@@ -245,6 +355,9 @@ export class DrillService {
 
       // Clean up session
       activeDrills.delete(discordUserId);
+    } else {
+      // Save updated state to database (for persistence across restarts)
+      await this.saveSessionToDB(state);
     }
 
     return {
@@ -263,7 +376,7 @@ export class DrillService {
    * Abandons an active session.
    */
   static async abandonSession(discordUserId: string): Promise<void> {
-    const state = activeDrills.get(discordUserId);
+    const state = await this.getSession(discordUserId);
     if (state?.sessionId) {
       await supabase
         .from("sessions")
@@ -277,10 +390,23 @@ export class DrillService {
   }
 
   /**
+   * Abandons a session by session ID (used for timeout cleanup).
+   */
+  private static async abandonSessionBySessionId(sessionId: number): Promise<void> {
+    await supabase
+      .from("sessions")
+      .update({
+        status: "abandoned",
+        ended_at: new Date().toISOString(),
+      })
+      .eq("id", sessionId);
+  }
+
+  /**
    * Gets the current question for display.
    */
-  static getCurrentQuestion(discordUserId: string): Question | null {
-    const state = activeDrills.get(discordUserId);
+  static async getCurrentQuestion(discordUserId: string): Promise<Question | null> {
+    const state = await this.getSession(discordUserId);
     if (!state || state.currentIndex >= state.questions.length) {
       return null;
     }
@@ -290,8 +416,8 @@ export class DrillService {
   /**
    * Gets session progress info.
    */
-  static getProgress(discordUserId: string): { current: number; total: number; score: number } | null {
-    const state = activeDrills.get(discordUserId);
+  static async getProgress(discordUserId: string): Promise<{ current: number; total: number; score: number } | null> {
+    const state = await this.getSession(discordUserId);
     if (!state) return null;
     return {
       current: state.currentIndex + 1,

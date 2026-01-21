@@ -236,13 +236,11 @@ export class RagService {
       console.log("[RagService] Confidence threshold:", confidenceThreshold, "| Match threshold:", matchThreshold);
     }
 
-    // Use optimized search function with title boosting
-    const { data, error } = await supabase.rpc("search_chunks_optimized", {
+    // Use basic search function (optimized version requires migration 003)
+    const { data, error } = await supabase.rpc("search_chunks", {
       query_embedding: queryEmbedding,
       match_threshold: matchThreshold,
-      match_count: 15,
-      framework_filter: null,
-      boost_section_match: conceptName
+      match_count: 15
     });
 
     const elapsed = Date.now() - startTime;
@@ -269,7 +267,6 @@ export class RagService {
     }
 
     // Convert results to ChunkSearchResult format
-    // The boosted_score from the database function is already applied
     const results = data.map((row: any) => ({
       chunk: {
         id: row.id,
@@ -281,7 +278,7 @@ export class RagService {
         embedding: row.embedding,
         created_at: row.created_at,
       } as Chunk,
-      similarity: row.boosted_score ?? (1 - row.distance / 2), // Use boosted score if available
+      similarity: 1 - row.distance / 2, // Convert distance to similarity score
     }));
 
     console.log(`[RagService] Returning ${results.length} chunks`);

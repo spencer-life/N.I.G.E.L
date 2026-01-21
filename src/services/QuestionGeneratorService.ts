@@ -123,6 +123,7 @@ export class QuestionGeneratorService {
 6. Include a brief explanation for the correct answer (1-2 sentences)
 7. Extract framework tags from the source material
 8. Questions should be clear, specific, and unambiguous
+9. CRITICAL: Each answer option MUST be 70 characters or less (Discord button limit)
 </requirements>
 
 <output_format>
@@ -145,6 +146,7 @@ Return ONLY a valid JSON array with this exact structure:
 - Test understanding of concepts, relationships, and use cases
 - Make incorrect options plausible but clearly wrong
 - Keep questions concise (under 100 characters when possible)
+- Keep answer options SHORT (max 70 chars) - they appear as Discord buttons
 - Explanations should reference the doctrine naturally
 </guidelines>`;
 
@@ -223,6 +225,16 @@ Generate ${count} multiple-choice questions based on the doctrine above. Return 
         if (q.correct_option_index === null || q.correct_option_index < 0 || q.correct_option_index > 3) {
           console.warn("[QuestionGenerator] Invalid correct_option_index:", q);
           throw new Error("Generated question has invalid correct answer index");
+        }
+        
+        // Validate option lengths (Discord button limit is 80 chars, reserve 10 for "A: " prefix)
+        for (let i = 0; i < q.options.length; i++) {
+          if (q.options[i].length > 70) {
+            console.warn(`[QuestionGenerator] Option ${i} too long (${q.options[i].length} chars):`, q.options[i]);
+            // Truncate the option rather than failing
+            q.options[i] = q.options[i].substring(0, 67) + "...";
+            console.log(`[QuestionGenerator] Truncated to: ${q.options[i]}`);
+          }
         }
       }
 
