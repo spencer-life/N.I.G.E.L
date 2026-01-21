@@ -60,6 +60,7 @@ export class DrillHandler {
         ephemeral: true,
       });
       await DrillService.abandonSession(interaction.user.id);
+      return; // Stop here - interaction already replied
     }
 
     await interaction.deferReply({ ephemeral: true });

@@ -58,6 +58,7 @@ export class QuestionGeneratorService {
   /**
    * Fetches random chunks from the knowledge base.
    * If frameworks specified, filters by framework_tags.
+   * Always excludes Scenarios and Trial Science.
    */
   private static async fetchRandomChunks(
     count: number,
@@ -75,7 +76,7 @@ export class QuestionGeneratorService {
     // Get random chunks using ORDER BY random()
     const { data, error } = await query
       .order("id", { ascending: false }) // Use id ordering for consistent results
-      .limit(count);
+      .limit(count * 3); // Get more to filter out excluded frameworks
 
     if (error) {
       console.error("[QuestionGenerator] Error fetching chunks:", error);
@@ -86,8 +87,25 @@ export class QuestionGeneratorService {
       return [];
     }
 
-    // Shuffle the results for randomness
-    return this.shuffle(data as Chunk[]);
+    // Filter out Scenarios and Trial Science chunks
+    const excludedFrameworks = ["Scenarios", "Trial Science"];
+    const filtered = (data as Chunk[]).filter(chunk => {
+      return !chunk.framework_tags.some(tag => 
+        excludedFrameworks.some(excluded => 
+          tag.toLowerCase().includes(excluded.toLowerCase())
+        )
+      );
+    });
+
+    console.log(`[QuestionGenerator] Filtered ${data.length - filtered.length} excluded framework chunks`);
+
+    if (filtered.length === 0) {
+      throw new Error("No valid knowledge chunks available after filtering excluded frameworks");
+    }
+
+    // Shuffle and return requested count
+    const shuffled = this.shuffle(filtered);
+    return shuffled.slice(0, count);
   }
 
   /**

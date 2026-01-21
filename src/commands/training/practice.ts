@@ -9,7 +9,7 @@ import { DrillService } from "../../services/DrillService.js";
 import { infoEmbed, errorEmbed, NIGELColors } from "../../utils/embeds.js";
 import type { Command } from "../../types/discord.js";
 
-// Framework options matching knowledge base
+// Framework options matching knowledge base (excluding Scenarios)
 const FRAMEWORK_CHOICES = [
   { name: "All Frameworks", value: "all" },
   { name: "6MX (Six-Minute X-Ray)", value: "6MX" },
