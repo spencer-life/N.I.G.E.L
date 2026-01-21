@@ -105,9 +105,8 @@ const command: Command = {
       const startButton = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId("drill_start")
-          .setLabel("Begin")
+          .setLabel("▶ Begin")
           .setStyle(ButtonStyle.Success)
-          .setEmoji("▶️")
       );
 
       await interaction.editReply({

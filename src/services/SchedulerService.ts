@@ -85,9 +85,8 @@ export class SchedulerService {
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
         new ButtonBuilder()
           .setCustomId("drill_start")
-          .setLabel("Begin Drill")
+          .setLabel("⚡ Begin Drill")
           .setStyle(ButtonStyle.Primary)
-          .setEmoji("⚡")
       );
 
       await channel.send({ embeds: [embed], components: [row] });

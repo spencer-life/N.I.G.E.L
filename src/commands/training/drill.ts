@@ -51,9 +51,8 @@ const command: Command = {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId("drill_start")
-        .setLabel("Begin Drill")
+        .setLabel("⚡ Begin Drill")
         .setStyle(ButtonStyle.Primary)
-        .setEmoji("⚡")
     );
 
     await interaction.reply({

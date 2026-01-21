@@ -108,9 +108,8 @@ export class DrillHandler {
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()
         .setCustomId("drill_next")
-        .setLabel("Continue")
+        .setLabel("Continue →")
         .setStyle(ButtonStyle.Primary)
-        .setEmoji("→")
     );
 
     await interaction.editReply({ embeds: [feedbackEmbed], components: [row] });
