@@ -180,10 +180,10 @@ export class DrillHandler {
     const options = question.options || [];
     const labels = ["A", "B", "C", "D"];
 
-    // Discord button labels max out at 80 characters
+    // Discord button labels max out at 80 characters - keep safe margin
     options.forEach((opt, i) => {
       const prefix = `${labels[i]}: `;
-      const maxLength = 80 - prefix.length;
+      const maxLength = 75 - prefix.length; // Conservative limit to prevent cutoff
       const truncated = opt.length > maxLength 
         ? opt.substring(0, maxLength - 3) + "..." 
         : opt;
@@ -310,5 +310,74 @@ export class DrillHandler {
       .setTimestamp();
 
     await interaction.editReply({ embeds: [embed], components: [] });
+
+    // Post results to public channel if configured
+    await this.postResultsToChannel(interaction, stats, accuracy, level);
+  }
+
+  /**
+   * Posts drill results to the configured results channel.
+   */
+  private static async postResultsToChannel(
+    interaction: ButtonInteraction,
+    stats: {
+      totalScore: number;
+      totalXp: number;
+      totalQuestions: number;
+      correctCount: number;
+      newStreak: number;
+    },
+    accuracy: number,
+    level: number
+  ): Promise<void> {
+    const channelId = process.env.DRILL_RESULTS_CHANNEL_ID;
+    if (!channelId) {
+      console.log("[DrillHandler] DRILL_RESULTS_CHANNEL_ID not configured, skipping public post");
+      return;
+    }
+
+    try {
+      const channel = await interaction.client.channels.fetch(channelId);
+      if (!channel?.isTextBased() || channel.isDMBased()) {
+        console.error("[DrillHandler] Results channel not found or not a guild text channel");
+        return;
+      }
+
+      // Performance rank emoji
+      let rankEmoji: string;
+      if (accuracy >= 90) {
+        rankEmoji = "🏆"; // Gold trophy for 90%+
+      } else if (accuracy >= 80) {
+        rankEmoji = "🥇"; // Gold medal for 80-89%
+      } else if (accuracy >= 70) {
+        rankEmoji = "🥈"; // Silver medal for 70-79%
+      } else if (accuracy >= 60) {
+        rankEmoji = "🥉"; // Bronze medal for 60-69%
+      } else {
+        rankEmoji = "📊"; // Chart for <60%
+      }
+
+      // Build concise results message
+      const username = interaction.user.displayName || interaction.user.username;
+      const streakText = stats.newStreak > 1 ? ` • ${stats.newStreak}🔥` : "";
+      
+      const resultsEmbed = new EmbedBuilder()
+        .setAuthor({ 
+          name: username, 
+          iconURL: interaction.user.displayAvatarURL() 
+        })
+        .setDescription(
+          `${rankEmoji} **${accuracy}%** accuracy (${stats.correctCount}/${stats.totalQuestions})\n` +
+          `**+${stats.totalScore}** pts • **Lvl ${level}**${streakText}`
+        )
+        .setColor(accuracy >= 70 ? 0x43b581 : accuracy >= 50 ? 0xfaa61a : 0xf04747)
+        .setFooter({ text: "Drill Completed" })
+        .setTimestamp();
+
+      await channel.send({ embeds: [resultsEmbed] });
+    } catch (error) {
+      console.error("[DrillHandler] Failed to post results to channel:", error);
+      // Don't throw - this is a nice-to-have feature, not critical
+    }
   }
 }
