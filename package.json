@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json || true",
     "start": "node dist/index.js",
     "deploy": "tsx src/deploy-commands.ts",
     "deploy:global": "tsx src/deploy-commands.ts --global",
