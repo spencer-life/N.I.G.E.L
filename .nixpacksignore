@@ -1,0 +1,18 @@
+﻿# Ignore MCP servers (local development only)
+mcp-servers/
+
+# Ignore test files
+tests/
+
+# Ignore templates
+templates/
+
+# Ignore scripts
+scripts/global/
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore cursor config
+.cursor/
