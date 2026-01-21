@@ -50,27 +50,39 @@ export class DrillHandler {
   }
 
   /**
-   * Starts a new drill session.
+   * Starts a new drill session or continues an existing one.
+   * If a session exists (from /drill or /practice command), continue it.
+   * This handles the "Begin" button click from both commands.
    */
   private static async startDrill(interaction: ButtonInteraction): Promise<void> {
-    // Check for existing session
-    if (await DrillService.hasActiveSession(interaction.user.id)) {
-      await interaction.reply({
-        content: "You have an unfinished drill. Complete it first, or it will be abandoned.",
-        ephemeral: true,
-      });
-      await DrillService.abandonSession(interaction.user.id);
-      return; // Stop here - interaction already replied
-    }
-
     await interaction.deferReply({ ephemeral: true });
 
-    const state = await DrillService.startSession(
-      interaction.user.id,
-      10,
-      interaction.user.username,
-      interaction.user.displayName
-    );
+    // Check if there's already a session (from /practice or /drill command)
+    let state = await DrillService.getSession(interaction.user.id);
+    
+    // If session exists and hasn't started yet (currentIndex = 0), continue with it
+    if (state && state.currentIndex === 0) {
+      console.log("[DrillHandler] Continuing existing session from command");
+    } else if (state) {
+      // Session exists but is in progress - abandon it and start fresh
+      console.log("[DrillHandler] Abandoning in-progress session");
+      await DrillService.abandonSession(interaction.user.id);
+      state = await DrillService.startSession(
+        interaction.user.id,
+        10,
+        interaction.user.username,
+        interaction.user.displayName
+      );
+    } else {
+      // No session - create new one (shouldn't happen, but handle it)
+      console.log("[DrillHandler] No existing session, creating new one");
+      state = await DrillService.startSession(
+        interaction.user.id,
+        10,
+        interaction.user.username,
+        interaction.user.displayName
+      );
+    }
 
     await this.sendQuestion(
       interaction,
