@@ -1,0 +1,29 @@
+# Anthropic API Key (Required)
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
+
+# Example MCP Server Configurations
+# Uncomment and configure as needed
+
+# Calendar Server
+# MCP_CALENDAR_URL=https://calendar.example.com/sse
+# MCP_CALENDAR_TOKEN=your_calendar_token
+
+# Database Server
+# MCP_DATABASE_URL=https://db.example.com/sse
+# MCP_DATABASE_TOKEN=your_database_token
+
+# GitHub Server
+# MCP_GITHUB_URL=https://github-mcp.example.com/sse
+# MCP_GITHUB_TOKEN=your_github_token
+
+# Email Server
+# MCP_EMAIL_URL=https://email.example.com/sse
+# MCP_EMAIL_TOKEN=your_email_token
+
+# Research Papers Server
+# MCP_RESEARCH_URL=https://research.example.com/sse
+# MCP_RESEARCH_TOKEN=your_research_token
+
+# Web Search Server
+# MCP_WEBSEARCH_URL=https://search.example.com/sse
+# MCP_WEBSEARCH_TOKEN=your_search_token

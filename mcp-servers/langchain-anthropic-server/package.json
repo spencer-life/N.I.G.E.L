@@ -1,0 +1,34 @@
+{
+  "name": "langchain-anthropic-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server exposing LangChain + Anthropic capabilities as tools",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "langchain-anthropic-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx index.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "tsx": "^4.7.0"
+  },
+  "keywords": [
+    "mcp",
+    "langchain",
+    "anthropic",
+    "claude",
+    "rag",
+    "vector-store",
+    "supabase"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}

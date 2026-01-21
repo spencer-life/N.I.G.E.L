@@ -1,0 +1,129 @@
+# NIGEL Project Rules
+
+## Planning Protocol (Critical)
+
+When in planning mode or discussing new features/changes:
+
+1. **Do NOT create, edit, or execute anything** until planning is fully complete
+2. **Finish the entire plan first** - architecture, data model, flows, edge cases
+3. **Explicitly ask**: "Is this plan complete? May I proceed with implementation?"
+4. **Wait for explicit confirmation** before writing any code or making changes
+5. If the user provides feedback, incorporate it and re-confirm before proceeding
+
+This applies to:
+- New feature requests
+- Architecture decisions
+- Database schema changes
+- Multi-step implementations
+- Any task requiring planning
+
+**Never assume permission. Always ask.**
+
+## Memory Bank Protocol (Critical)
+
+1. **Read First:** At the start of any new session or when context is missing, ALWAYS read `MEMORY-BANK.md`.
+2. **Source of Truth:** Trust `MEMORY-BANK.md` over your internal training data for project specifics.
+3. **Keep Updated:** 
+   - When a major architectural decision is made -> Update Section 7 (Decisions Log).
+   - When a feature is completed -> Update Section 6 (Current State).
+   - When the schema changes -> Update Section 4 (Database Schema).
+4. **Verification:** Before ending a session, check if `MEMORY-BANK.md` accurately reflects the new state of the project.
+
+---
+
+## Prime Directive
+
+Before implementing any feature, always refer to README.md to ensure alignment with:
+- The stated outcome and success criteria
+- Hard constraints (Node.js, discord.js, Supabase, Gemini, Railway)
+- NIGEL's voice and personality guidelines
+- The knowledge rule (no hallucinated doctrine)
+
+## Architecture Reference
+
+The complete system architecture, database schema, and interaction flows are documented in:
+- MEMORY-BANK.md - Central source of truth for project context and state
+- README.md - Project overview and goals
+- TODO.md - Implementation checklist and status
+- src/database/schema.sql - Full database schema (once created)
+
+## Code Standards
+
+### TypeScript
+- Strict mode enabled
+- Explicit return types on functions
+- No `any` types unless absolutely necessary
+- Use interfaces over types for object shapes
+
+### Discord.js Patterns
+- Use SlashCommandBuilder for all commands
+- Handle interactions with collectors for multi-step flows
+- Always reply/defer within 3 seconds
+- Use ephemeral responses for user-specific feedback
+
+### Database
+- All timestamps stored as TIMESTAMPTZ (UTC)
+- Use Phoenix timezone functions for period calculations
+- Parameterized queries only (no string concatenation)
+- Foreign key constraints enforced
+
+### RAG System
+- Chunk size: 400-600 tokens target, 800 max
+- Always include framework_tags on chunks
+- Similarity threshold: 0.5 (lower for more context to thinking models)
+- If no relevant chunks found, explicitly say so
+
+### Claude API Usage (Critical)
+**Reference**: See `CLAUDE-BEST-PRACTICES.md` for complete guide
+
+When working with Claude API in this project:
+1. **Use XML structure** for all system prompts
+2. **Enable prompt caching** on system prompts (90% cost savings)
+3. **Hybrid routing**: Haiku for simple, Sonnet for complex queries
+4. **Extended thinking**: Enable for complexity score 60+
+5. **Context for WHY**: Always explain reasoning behind instructions
+6. **No citations in responses**: Natural conversation, not academic papers
+7. **Avoid "think" terminology** unless extended thinking is enabled
+
+### Gemini API Usage
+**Reference**: See `GEMINI-BEST-PRACTICES.md` for complete guide
+
+When working with Gemini API (if applicable):
+1. **Temperature 1.0**: Do not lower temperature for Gemini 3
+2. **Context Caching**: Use for large static contexts (>32k tokens)
+3. **XML Delimiters**: Use tags for structure
+4. **Reasoning Prompt**: Use the "Strong Reasoner" system template
+5. **File API**: Upload heavy docs instead of text injection
+
+## NIGEL Voice (Enforce in All User-Facing Text)
+
+DO:
+- Short, direct sentences
+- Concrete language
+- Calm, surgical tone
+- One subtle joke maximum
+
+DO NOT:
+- "OMG", "Let's gooo", "Bestie"
+- Excessive emojis
+- Hype language
+- Generic AI assistant phrases
+
+## File Organization
+
+```
+src/
+├── commands/       # Slash command definitions
+├── interactions/   # Button, modal, select menu handlers
+├── services/       # Business logic (rag, scoring, scheduler)
+├── database/       # Schema, migrations, queries
+├── utils/          # Helpers (time, embeds, validators)
+└── types/          # TypeScript type definitions
+```
+
+## Before Each Implementation
+
+1. Check README.md for alignment with project goals
+2. Check TODO.md for current task and dependencies
+3. Follow existing patterns in the codebase
+4. Test with Discord interactions before marking complete
