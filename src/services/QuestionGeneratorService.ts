@@ -220,7 +220,7 @@ Generate ${count} multiple-choice questions based on the doctrine above. Return 
           console.warn("[QuestionGenerator] Invalid question format:", q);
           throw new Error("Generated question has invalid format");
         }
-        if (q.correct_option_index < 0 || q.correct_option_index > 3) {
+        if (q.correct_option_index === null || q.correct_option_index < 0 || q.correct_option_index > 3) {
           console.warn("[QuestionGenerator] Invalid correct_option_index:", q);
           throw new Error("Generated question has invalid correct answer index");
         }
