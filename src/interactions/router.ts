@@ -6,6 +6,7 @@ import type {
 } from "discord.js";
 import type { ExtendedClient } from "../types/discord.js";
 import { DrillHandler } from "./DrillHandler.js";
+import { SharedDrillHandler } from "./SharedDrillHandler.js";
 import { AuthorityHandler } from "./AuthorityHandler.js";
 import { AddQuestionHandler } from "./AddQuestionHandler.js";
 
@@ -44,6 +45,13 @@ async function handleCommand(interaction: Interaction): Promise<void> {
 async function handleButton(interaction: ButtonInteraction): Promise<void> {
   console.log(`[Router] Button clicked: ${interaction.customId}`);
 
+  // Shared daily drills (community drills)
+  if (interaction.customId.startsWith("shared_drill_")) {
+    await SharedDrillHandler.handleButton(interaction);
+    return;
+  }
+
+  // Individual drills and practice sessions
   if (interaction.customId.startsWith("drill_")) {
     await DrillHandler.handleButton(interaction);
     return;

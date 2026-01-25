@@ -193,14 +193,15 @@ export class DrillHandler {
     const options = question.options || [];
     const labels = ["A", "B", "C", "D"];
 
-    // Discord button labels max out at 80 characters - keep safe margin
+    // Discord button labels max out at 80 characters - use conservative limit
     options.forEach((opt, i) => {
-      const prefix = `${labels[i]}: `;
-      const maxLength = 75 - prefix.length; // Conservative limit to prevent cutoff
-      const truncated = opt.length > maxLength 
-        ? opt.substring(0, maxLength - 3) + "..." 
+      const prefix = `${labels[i]}· `;
+      const maxLength = 55; // Conservative limit to prevent cutoff
+      const maxAnswerLength = maxLength - prefix.length;
+      const truncated = opt.length > maxAnswerLength
+        ? opt.substring(0, maxAnswerLength - 3) + "..."
         : opt;
-      
+
       row.addComponents(
         new ButtonBuilder()
           .setCustomId(`drill_answer_${i}`)

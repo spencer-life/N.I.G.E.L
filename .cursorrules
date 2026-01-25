@@ -1,129 +1,989 @@
-# NIGEL Project Rules
+---
+description: 
+alwaysApply: true
+---
 
-## Planning Protocol (Critical)
+---
+description: 
+alwaysApply: true
+---
 
-When in planning mode or discussing new features/changes:
+# Global Cursor Rules - Integrated Claude + Cursor Workflow
 
-1. **Do NOT create, edit, or execute anything** until planning is fully complete
-2. **Finish the entire plan first** - architecture, data model, flows, edge cases
-3. **Explicitly ask**: "Is this plan complete? May I proceed with implementation?"
-4. **Wait for explicit confirmation** before writing any code or making changes
-5. If the user provides feedback, incorporate it and re-confirm before proceeding
-
-This applies to:
-- New feature requests
-- Architecture decisions
-- Database schema changes
-- Multi-step implementations
-- Any task requiring planning
-
-**Never assume permission. Always ask.**
-
-## Memory Bank Protocol (Critical)
-
-1. **Read First:** At the start of any new session or when context is missing, ALWAYS read `MEMORY-BANK.md`.
-2. **Source of Truth:** Trust `MEMORY-BANK.md` over your internal training data for project specifics.
-3. **Keep Updated:** 
-   - When a major architectural decision is made -> Update Section 7 (Decisions Log).
-   - When a feature is completed -> Update Section 6 (Current State).
-   - When the schema changes -> Update Section 4 (Database Schema).
-4. **Verification:** Before ending a session, check if `MEMORY-BANK.md` accurately reflects the new state of the project.
+**Purpose:** Unified AI assistant guidelines integrating Cursor Volt Agents and Claude Code agents/skills for optimal development workflow.
 
 ---
 
-## Prime Directive
+## PART 1: TOOL SELECTION HIERARCHY
 
-Before implementing any feature, always refer to README.md to ensure alignment with:
-- The stated outcome and success criteria
-- Hard constraints (Node.js, discord.js, Supabase, Gemini, Railway)
-- NIGEL's voice and personality guidelines
-- The knowledge rule (no hallucinated doctrine)
+### When to Use Claude Code
 
-## Architecture Reference
+Use Claude Code (VSCode) for:
+- **Strategic Planning:** Multi-step architecture decisions, tech stack selection, system design
+- **Complex Debugging:** Systematic root cause analysis across multiple files/systems
+- **Multi-Session Work:** Long-running investigations, cross-project patterns, refactoring strategies
+- **Research & Analysis:** Exploring unfamiliar codebases, comparing approaches, evaluating trade-offs
+- **Agent Orchestration:** Coordinating multiple Claude Code agents with specialized expertise
+- **Skill Application:** Reusable workflows (discord-bot-dev, mcp-builder, test-driven-development)
 
-The complete system architecture, database schema, and interaction flows are documented in:
-- MEMORY-BANK.md - Central source of truth for project context and state
-- README.md - Project overview and goals
-- TODO.md - Implementation checklist and status
-- src/database/schema.sql - Full database schema (once created)
+**Commands:**
+- `/clear` - Start fresh context between unrelated tasks
+- `/cost` - Check token usage regularly
+- `/agents` - List available agents
+- `/model` - Switch model (sonnet/opus)
+- `/resume` - Continue previous conversation
 
-## Code Standards
+### When to Use Cursor Chat
 
-### TypeScript
+Use Cursor (IDE chat) for:
+- **Quick Edits:** Single-file changes, bug fixes, refactoring within current context
+- **Simple Tasks:** Straightforward implementations without architectural decisions
+- **Real-Time Coding:** Active development with immediate file access and linting
+- **Fast Iterations:** Rapid prototyping, trying approaches quickly
+- **Context-Aware Edits:** Working with open files, cursor position, recent changes
+
+**Commands:**
+- `Cmd/Ctrl+L` - New chat
+- `Cmd/Ctrl+K` - Inline edit
+- `Cmd+I` (Mac) / `Ctrl+I` (Win) - Composer mode
+
+### When to Use Cursor Subagents
+
+Use Cursor Subagents (Volt Agents) for:
+- **Specialized Domain Work:** Backend, frontend, infrastructure, database-specific tasks
+- **Parallel Execution:** Independent tasks that can run simultaneously
+- **Project Context:** Implementation work within current project boundaries
+- **Tool Access:** When agents need direct file system, shell, and IDE integration
+
+**Invocation:** Type agent name in Cursor chat or use `@agent-name` syntax
+
+**Available in `~/.cursor/agents/`:**
+- Core Dev: fullstack-developer, backend-architect, frontend-architect
+- Languages: typescript-pro, python-pro, nextjs-developer
+- Infrastructure: devops-engineer, kubernetes-specialist, cloud-architect
+- Quality: code-reviewer, debugger, qa-expert, performance-engineer
+- Data/AI: data-engineer, ml-engineer, rag-specialist
+- DX: documentation-engineer, api-designer
+- Domains: blockchain-developer, mobile-app-developer, wordpress-master
+- Meta: multi-agent-coordinator, task-distributor
+
+### When to Use Claude Code Agents
+
+Use Claude Code Agents for:
+- **Systematic Workflows:** TDD, systematic debugging, security audits
+- **Cross-Project Patterns:** Reusable approaches that apply to multiple projects
+- **Pre-Implementation Planning:** Architecture design before coding
+- **Strategic Reviews:** Post-implementation analysis, optimization planning
+
+**Available in `~/.claude/agents/`:**
+- `fullstack-developer` - End-to-end feature ownership (planning phase)
+- `typescript-pro` - Type system expertise, TypeScript best practices
+- `nextjs-developer` - Next.js architecture, App Router patterns
+- `python-pro` - Python best practices, async patterns
+- `api-designer` - API architecture, REST/GraphQL design
+- `code-reviewer` - Quality analysis, security review
+- `debugger` - Systematic troubleshooting, root cause analysis
+- `mcp-developer` - MCP server design and implementation
+
+**Pattern:** Use Claude Code agent for PLANNING, then Cursor subagent for IMPLEMENTATION
+
+### When to Use Claude Code Skills
+
+Use Claude Code Skills (reusable workflows) for:
+- **Discord Bot Development:** `discord-bot-dev` skill + `python-pro` agent
+- **MCP Server Creation:** `mcp-builder` skill + `mcp-developer` agent
+- **Web Artifacts:** `web-artifacts-builder` skill for complex React components
+- **Frontend Design:** `frontend-design` skill for production-grade UI
+- **TDD Workflow:** `test-driven-development` skill before implementation
+- **Systematic Debugging:** `systematic-debugging` skill for complex issues
+- **Subagent Development:** `subagent-driven-development` skill for parallel tasks
+- **Document Operations:** `docx` skill for Word document creation/editing
+
+**Available in `~/.claude/skills/`:**
+- `mcp-builder` - MCP server development (FastMCP/TypeScript)
+- `web-artifacts-builder` - Complex React artifacts with shadcn/ui
+- `discord-bot-dev` - Discord.js bot development patterns
+- `frontend-design` - Production-grade UI design
+- `test-driven-development` - TDD workflow
+- `systematic-debugging` - Systematic troubleshooting
+- `subagent-driven-development` - Parallel task execution
+- `verification-before-completion` - Pre-commit verification
+- `docx` - Word document operations
+
+---
+
+## PART 2: AGENT DELEGATION PROTOCOL
+
+### Delegation Decision Tree
+
+```
+Is this a specialized domain task?
+├─ YES → Delegate to domain specialist
+│   ├─ Discord bot → Claude Code: discord-bot-dev skill + python-pro agent
+│   ├─ MCP server → Claude Code: mcp-builder skill + mcp-developer agent
+│   ├─ Next.js app (complex) → Claude Code: nextjs-developer agent (plan) → Cursor: nextjs subagent (implement)
+│   ├─ Next.js app (simple) → Cursor: nextjs subagent directly
+│   └─ Database work → Cursor: postgres-pro subagent
+└─ NO → Continue
+
+Does this require deep expertise?
+├─ YES → Delegate to expert agent
+│   ├─ Planning → Claude Code agent
+│   └─ Implementation → Cursor subagent
+└─ NO → Continue
+
+Is this a complete feature (full-stack, multi-layer)?
+├─ YES → Claude Code: fullstack-developer (plan) → Cursor: fullstack-developer (implement)
+└─ NO → Continue
+
+Is this research/analysis heavy?
+├─ YES → Claude Code: research agent or debugger agent
+└─ NO → Continue
+
+Is it a simple, quick task?
+└─ NO DELEGATION → Handle directly in Cursor chat
+```
+
+### Dual-System Agents (Available in BOTH)
+
+These agents exist in both systems - use **Claude Code for planning**, **Cursor for implementation**:
+
+| Agent | Claude Code Use Case | Cursor Use Case |
+|-------|----------------------|-----------------|
+| `fullstack-developer` | Feature planning, architecture design | Feature implementation, integration |
+| `typescript-pro` | Type system strategy, patterns | TypeScript code writing, refactoring |
+| `python-pro` | Python architecture, async design | Python implementation, optimization |
+| `api-designer` | API design, endpoint planning | API implementation, routing |
+| `code-reviewer` | Strategic quality review | Real-time code review with fixes |
+| `debugger` | Systematic investigation | Bug fixing with IDE context |
+| `mcp-developer` | MCP design patterns | MCP server implementation |
+
+### Domain-Specific Delegation
+
+**Discord Bot Development:**
+1. Claude Code: `discord-bot-dev` skill + `python-pro` agent → Design bot architecture
+2. Cursor: `discord-bot-dev` subagent → Implement with Discord.js
+3. Shared: `docs/MEMORY-BANK.md` for context
+
+**MCP Server Development:**
+1. Claude Code: `mcp-builder` skill + `mcp-developer` agent → Design server architecture
+2. Cursor: Implement with TypeScript or Python
+3. Test: MCP Inspector
+
+**Next.js Applications:**
+- **Complex (multi-route, auth, DB):** Claude Code `nextjs-developer` agent → Plan → Cursor subagent → Implement
+- **Simple (single page, component):** Cursor `nextjs-developer` subagent directly
+
+**Performance Optimization:**
+1. Claude Code: `debugger` agent → Analyze performance bottlenecks
+2. Cursor: `performance-engineer` subagent → Implement optimizations
+
+**Security Audits:**
+1. Claude Code: `code-reviewer` agent → Security analysis
+2. Cursor: `security-auditor` subagent → Fix vulnerabilities
+
+---
+
+## PART 3: MEMORY BANK INTEGRATION
+
+### Shared Context System
+
+**Location:** `docs/MEMORY-BANK.md` in every project
+
+**Purpose:**
+- Single source of truth for project context
+- Enables prompt caching (40-60% token savings)
+- Facilitates agent handoffs between Claude Code and Cursor
+- Reduces context duplication across conversations
+
+### How It Works
+
+1. **Claude Code** reads `MEMORY-BANK.md` for planning context
+2. **Claude Code agents** update decisions, architecture choices, next steps
+3. **Cursor agents** read `MEMORY-BANK.md` for implementation context
+4. **Cursor agents** update progress, completed features, issues found
+
+### Template Available
+
+Get started with: `~/.claude/templates/MEMORY-BANK-TEMPLATE.md`
+
+Copy to new projects: `cp ~/.claude/templates/MEMORY-BANK-TEMPLATE.md docs/MEMORY-BANK.md`
+
+### Structure
+
+```markdown
+# Project Memory Bank
+
+## 1. Project Identity
+- Name, purpose, tech stack, constraints
+
+## 2. Current State
+- Completed, In Progress, Planned
+
+## 3. Key Decisions Log
+- Date, decision, rationale, impact
+
+## 4. Agent Collaboration Log
+- Who did what, when, handoff notes
+
+## 5. Known Issues
+- Bugs, technical debt, blockers
+
+## 6. Quick Reference
+- Commands, env vars, key files
+
+## 7. Update Checklist
+- When to update this file
+```
+
+### Update Triggers
+
+**Claude Code agents update when:**
+- Making architectural decisions
+- Designing system components
+- Planning implementation steps
+- Analyzing complex problems
+
+**Cursor agents update when:**
+- Completing features
+- Discovering bugs
+- Adding dependencies
+- Making optimization changes
+
+### Caching Benefits
+
+With proper Memory Bank usage:
+- **First read:** Full tokens charged
+- **Subsequent reads (within 5 min):** 90% discount (cached)
+- **Cross-conversation:** Context persists across chats
+- **Total savings:** 40-60% token reduction
+
+---
+
+## PART 4: TOKEN OPTIMIZATION
+
+### Claude Code Optimization
+
+#### 1. Clear Context Between Tasks
+```bash
+/clear  # Use between unrelated tasks
+```
+
+**When to clear:**
+- Switching projects
+- Moving to unrelated feature
+- After completing current work
+- Before starting new research
+
+**Don't clear when:**
+- Continuing same feature
+- Building on previous discussion
+- Referencing recent decisions
+
+#### 2. Extended Thinking Budget
+
+```
+Standard work: 8k tokens (default)
+Complex reasoning: 16k tokens
+Strategic planning: 32k tokens (use sparingly)
+```
+
+**Set thinking budget:**
+- Type `/model` then select model + thinking level
+- Check current: Look for thinking indicator in responses
+- Default to 8k for routine work
+
+#### 3. Check Cost Regularly
+
+```bash
+/cost  # View token usage and cost
+```
+
+**Review after:**
+- Long conversations (>20 turns)
+- Large file operations
+- Multi-agent orchestrations
+- Before committing to expensive operations
+
+#### 4. Delegate Verbose Operations
+
+**Expensive in Claude Code:**
+- ❌ Reading many files sequentially
+- ❌ Writing large code blocks
+- ❌ Repetitive refactoring
+
+**Instead:**
+- ✅ Plan in Claude Code → Implement in Cursor
+- ✅ Use agents for specialized work
+- ✅ Reference files, don't paste full content
+
+#### 5. Use Skills for Repeated Patterns
+
+**Instead of:**
+```
+Explaining Discord bot setup from scratch each time
+```
+
+**Use:**
+```
+@discord-bot-dev skill + python-pro agent
+```
+
+**Benefits:**
+- Pre-optimized prompts
+- Cached patterns
+- Faster execution
+- Lower token cost
+
+### Cursor Optimization
+
+#### 1. Parallel Tool Calls
+
+```xml
+<parallel_tool_efficiency>
+If you intend to call multiple tools with no dependencies between them, make all independent calls in parallel. This significantly improves response time.
+
+Examples:
+- Reading 3 files → 3 parallel read_file calls
+- Multiple searches → parallel search calls
+
+Only call sequentially when one call depends on another's output.
+</parallel_tool_efficiency>
+```
+
+#### 2. Selective Context Loading
+
+- Load only files being edited
+- Use grep/search instead of reading entire directories
+- Reference `docs/MEMORY-BANK.md` instead of repeating context
+
+#### 3. Agent Context Isolation
+
+- Each subagent runs in isolated context
+- No token carryover between agents
+- Parallel agents don't share token costs
+
+#### 4. Prompt Caching
+
+Cursor automatically caches:
+- System prompts
+- Open files (static)
+- Memory Bank (when referenced)
+
+**To maximize:**
+- Keep Memory Bank up to date
+- Reference it in conversations
+- Don't modify frequently-referenced files unnecessarily
+
+---
+
+## PART 5: ANTI-PATTERNS
+
+### Cross-System Anti-Patterns
+
+❌ **Using Cursor chat for strategic planning**
+- Complex architecture decisions
+- Multi-approach comparisons
+- Long-term system design
+- **Instead:** Use Claude Code for planning, Cursor for implementation
+
+❌ **Using Claude Code for immediate simple edits**
+- Single-line bug fixes
+- Quick refactors
+- File renames
+- **Instead:** Use Cursor chat directly
+
+❌ **Duplicating context between systems**
+- Copying file contents from Cursor to Claude Code
+- Repeating decisions in both places
+- **Instead:** Use `docs/MEMORY-BANK.md` as single source of truth
+
+❌ **Long conversations without /clear in Claude Code**
+- 50+ turn conversations
+- Switching topics without clearing
+- **Instead:** Use `/clear` between unrelated tasks
+
+❌ **Using extended thinking at 32k for simple tasks**
+- Basic CRUD implementations
+- Simple refactors
+- Straightforward bug fixes
+- **Instead:** Keep thinking at 8k for routine work, 16k for moderate complexity
+
+❌ **Not delegating to specialized agents**
+- Trying to do Discord bot work without discord-bot-dev skill
+- Building MCP servers without mcp-builder skill
+- **Instead:** Use specialized agents and skills for domain work
+
+### Code Anti-Patterns
+
+❌ **String concatenation for SQL**
+```typescript
+// BAD
+const query = `SELECT * FROM users WHERE id = ${userId}`;
+
+// GOOD
+const query = { text: 'SELECT * FROM users WHERE id = $1', values: [userId] };
+```
+
+❌ **Using `any` types**
+```typescript
+// BAD
+function process(data: any): any { }
+
+// GOOD
+function process(data: User): ProcessedUser { }
+```
+
+❌ **Hard-coding values**
+```typescript
+// BAD
+const apiUrl = 'https://api.example.com';
+
+// GOOD
+const apiUrl = process.env.API_URL;
+```
+
+❌ **Implementing only for test cases**
+```typescript
+// BAD - Only handles exact test inputs
+function calculate(a: number, b: number) {
+  if (a === 2 && b === 3) return 5;
+}
+
+// GOOD - General implementation
+function calculate(a: number, b: number) {
+  return a + b;
+}
+```
+
+❌ **Creating helper scripts as workarounds**
+- Don't create temporary scripts to avoid proper implementation
+- Don't use shell commands when proper API/SDK exists
+- **Instead:** Implement properly using standard tools
+
+### Process Anti-Patterns
+
+❌ **Implementing before planning complete**
+- Always confirm architecture before coding
+- Use Claude Code for planning if complex
+- Get user approval on approach
+
+❌ **Over-engineering simple tasks**
+- KISS: Keep It Simple
+- YAGNI: You Aren't Gonna Need It
+- Build for today's requirements
+
+❌ **Suggesting instead of implementing**
+- Default to action in Cursor
+- Implement unless user asks for suggestions
+- Use tools to discover missing details
+
+❌ **Sequential tool calls for independent tasks**
+```typescript
+// BAD
+await readFile('a.ts');
+await readFile('b.ts');
+await readFile('c.ts');
+
+// GOOD (parallel)
+await Promise.all([
+  readFile('a.ts'),
+  readFile('b.ts'),
+  readFile('c.ts')
+]);
+```
+
+❌ **Loading entire files when only sections needed**
+- Use grep/search for specific code
+- Read line ranges when known
+- Don't read 1000+ line files fully
+
+❌ **Manually selecting models when agents can auto-delegate**
+- Agents have pre-optimized model preferences
+- Let agents choose appropriate models
+- Only override for specific reasons
+
+❌ **Trying to do everything without delegating to specialists**
+- Recognize when specialist expertise needed
+- Delegate complex domains to domain agents
+- Use skills for repeated patterns
+
+### Communication Anti-Patterns
+
+❌ **Excessive verbosity**
+- Short, clear sentences
+- Fact-based progress reports
+- Skip lengthy summaries unless requested
+
+❌ **Generic AI phrases**
+- Avoid: "Let's dive into...", "I'd be happy to...", "Absolutely!"
+- Use: Direct, technical communication
+
+❌ **Apologizing excessively**
+- Don't apologize for mistakes repeatedly
+- Fix the issue and move on
+- One acknowledgment is sufficient
+
+❌ **Hedging when confident**
+- Don't use "I think", "maybe", "possibly" when you know
+- Be direct: "This is the issue" not "This might be the issue"
+
+---
+
+## PART 6: QUICK REFERENCE
+
+### Commands by System
+
+#### Claude Code Commands
+```bash
+/clear      # Start fresh context between unrelated tasks
+/cost       # Check token usage and cost
+/agents     # List available agents
+/model      # Switch model (sonnet/opus) and thinking level
+/rename     # Rename current conversation
+/resume     # Continue previous conversation
+```
+
+#### Cursor Commands
+```
+Cmd/Ctrl+L          # New chat
+Cmd/Ctrl+K          # Inline edit
+Cmd+I / Ctrl+I      # Composer mode
+@agent-name         # Invoke specific subagent
+@filename           # Reference file
+```
+
+#### Shared Resources
+```
+docs/MEMORY-BANK.md              # Project context (cache this!)
+~/.claude/QUICKSTART.md          # Quick reference guide
+~/.claude/agents/                # Claude Code agents
+~/.cursor/agents/                # Cursor subagents
+~/.claude/skills/                # Claude Code skills
+~/.claude/templates/             # Templates (Memory Bank, etc.)
+```
+
+### Decision Matrix: Which Tool?
+
+| Task Type | Tool | Why |
+|-----------|------|-----|
+| Architecture planning | Claude Code | Extended thinking, multi-approach analysis |
+| Quick bug fix | Cursor | Real-time file access, linting |
+| Discord bot (new) | Claude Code + skill | discord-bot-dev + python-pro agent |
+| MCP server (new) | Claude Code + skill | mcp-builder + mcp-developer agent |
+| Next.js feature (complex) | Claude Code → Cursor | Plan in Claude, implement in Cursor |
+| Next.js component (simple) | Cursor | Direct implementation with context |
+| Systematic debugging | Claude Code | debugger agent with investigation flow |
+| Performance optimization | Claude Code → Cursor | Analyze in Claude, fix in Cursor |
+| Code review | Claude Code | code-reviewer agent with systematic checks |
+| Multi-file refactor | Claude Code → Cursor | Plan in Claude, execute in Cursor |
+| Single-file refactor | Cursor | Direct editing with linting |
+
+### Workflow Patterns
+
+#### Pattern 1: Strategic Planning → Implementation
+```
+1. Claude Code: Architecture planning with relevant agent
+2. Update docs/MEMORY-BANK.md with decisions
+3. Cursor: Implementation with appropriate subagent
+4. Update docs/MEMORY-BANK.md with progress
+```
+
+#### Pattern 2: Skill-Based Development
+```
+1. Claude Code: Load skill (@discord-bot-dev, @mcp-builder)
+2. Claude Code: Use with specialized agent (python-pro, mcp-developer)
+3. Generate implementation plan
+4. Cursor: Implement following plan
+```
+
+#### Pattern 3: Parallel Execution
+```
+1. Claude Code: Break work into independent tasks
+2. Cursor: Launch multiple subagents in parallel
+3. Each agent works on isolated task
+4. Consolidate results
+```
+
+#### Pattern 4: Investigation → Fix
+```
+1. Claude Code: debugger agent investigates issue
+2. Document findings in MEMORY-BANK.md
+3. Cursor: Implement fix with context from investigation
+4. Verify fix works
+```
+
+---
+
+## EXISTING STANDARDS (Preserved)
+
+### Code Quality Standards
+
+#### TypeScript/JavaScript
 - Strict mode enabled
-- Explicit return types on functions
-- No `any` types unless absolutely necessary
-- Use interfaces over types for object shapes
+- Explicit return types on all functions
+- Minimal `any` types - use proper interfaces
+- Prefer interfaces over types for object shapes
+- Proper error handling with try/catch
 
-### Discord.js Patterns
-- Use SlashCommandBuilder for all commands
-- Handle interactions with collectors for multi-step flows
-- Always reply/defer within 3 seconds
-- Use ephemeral responses for user-specific feedback
+#### Architecture Principles
+- **KISS**: Keep It Simple - don't over-engineer
+- **YAGNI**: You Aren't Gonna Need It - build for today
+- **DRY**: Don't Repeat Yourself - extract reusable logic
+- **Single Responsibility**: One function/class = one clear purpose
+- **Fail Fast**: Validate inputs early, throw meaningful errors
 
-### Database
-- All timestamps stored as TIMESTAMPTZ (UTC)
-- Use Phoenix timezone functions for period calculations
-- Parameterized queries only (no string concatenation)
-- Foreign key constraints enforced
+#### General Best Practices
+- Parameterized queries only (never string concatenation for SQL)
+- Environment variables for all configuration
+- Proper structured logging with appropriate levels
+- Foreign key constraints (enforce data integrity at DB level)
+- Input validation at boundaries (API endpoints, user input)
 
-### RAG System
-- Chunk size: 400-600 tokens target, 800 max
-- Always include framework_tags on chunks
-- Similarity threshold: 0.5 (lower for more context to thinking models)
-- If no relevant chunks found, explicitly say so
+### Frontend & UI Standards
 
-### Claude API Usage (Critical)
-**Reference**: See `CLAUDE-BEST-PRACTICES.md` for complete guide
+#### Design System
+- **Framework:** Material Web Components (M3) via `@material/web`
+- **Reference:** See `docs/MATERIAL-WEB-REFERENCE.md`
+- **Styling:** CSS Variables for theming over hardcoded hex values
+- **Icons:** Material Symbols Outlined
 
-When working with Claude API in this project:
-1. **Use XML structure** for all system prompts
-2. **Enable prompt caching** on system prompts (90% cost savings)
-3. **Hybrid routing**: Haiku for simple, Sonnet for complex queries
-4. **Extended thinking**: Enable for complexity score 60+
-5. **Context for WHY**: Always explain reasoning behind instructions
-6. **No citations in responses**: Natural conversation, not academic papers
-7. **Avoid "think" terminology** unless extended thinking is enabled
+#### Avoid AI Aesthetics
+When creating frontend/design:
+- **DON'T use:**
+  - Overused fonts (Inter, Roboto)
+  - Clichéd color schemes (purple gradients)
+  - Predictable layouts
+- **DO use:**
+  - Distinctive, beautiful designs
+  - Meaningful animations and micro-interactions
+  - Cohesive themes with sharp accents
 
-### Gemini API Usage
-**Reference**: See `GEMINI-BEST-PRACTICES.md` for complete guide
+### LangChain + RAG Standards
 
-When working with Gemini API (if applicable):
-1. **Temperature 1.0**: Do not lower temperature for Gemini 3
-2. **Context Caching**: Use for large static contexts (>32k tokens)
-3. **XML Delimiters**: Use tags for structure
-4. **Reasoning Prompt**: Use the "Strong Reasoner" system template
-5. **File API**: Upload heavy docs instead of text injection
+- **Framework:** LangChain for AI-powered applications requiring RAG
+- **Reference:** See `docs/LANGCHAIN-RAG-SETUP-TEMPLATE.md`
+- **Vector Database:** Supabase PostgreSQL with pgvector
+- **Embeddings:** Google Gemini `text-embedding-004` (768-dim)
+- **LLM:** Anthropic Claude 4.5 (Haiku for speed, Sonnet for quality)
+- **Cost:** ~$0.0001 per query with prompt caching
 
-## NIGEL Voice (Enforce in All User-Facing Text)
+### MCP Server Development Standards
 
-DO:
-- Short, direct sentences
-- Concrete language
-- Calm, surgical tone
-- One subtle joke maximum
+- **Protocol:** Model Context Protocol (MCP) for AI integrations
+- **Reference:** See `docs/MCP-SERVER-REFERENCE.md`
+- **Primary SDKs:** TypeScript (`@modelcontextprotocol/sdk`) or Python (`mcp`)
+- **Testing:** MCP Inspector (`@modelcontextprotocol/inspector`)
+- **Development:** Use Claude Code `mcp-builder` skill + `mcp-developer` agent
 
-DO NOT:
-- "OMG", "Let's gooo", "Bestie"
-- Excessive emojis
-- Hype language
-- Generic AI assistant phrases
+### Cursor Subagents
 
-## File Organization
+- **Location:** Project-level (`.cursor/agents/`) or user-level (`~/.cursor/agents/`)
+- **Usage:** Automatic delegation or explicit invocation
+- **Benefits:** Context isolation, parallel execution, specialized expertise
+- **Requirement:** Cursor on Nightly release channel
 
+---
+
+## Claude API Optimization (For API Integrations)
+
+### Model Selection
+
+When using Claude API in projects:
+- **Haiku 4.5**: `claude-haiku-4-5-20251001` - Fast, simple tasks ($1/$5 per 1M tokens)
+- **Sonnet 4.5**: `claude-sonnet-4-5-20250929` - Complex reasoning, default ($3/$15 per 1M tokens)
+- **Opus 4.5**: `claude-opus-4-5-20251101` - Maximum intelligence ($5/$25 per 1M tokens)
+
+### Prompt Structure (Always Use XML)
+
+```xml
+<role>
+[Specific role with context about why it matters]
+</role>
+
+<personality>
+[Communication style with reasoning - explain WHY this style matters]
+</personality>
+
+<expertise>
+[Specific knowledge domains]
+</expertise>
+
+<critical_rules>
+1. [Rule with explanation]
+2. [Rule with specific guidance]
+</critical_rules>
 ```
-src/
-├── commands/       # Slash command definitions
-├── interactions/   # Button, modal, select menu handlers
-├── services/       # Business logic (rag, scoring, scheduler)
-├── database/       # Schema, migrations, queries
-├── utils/          # Helpers (time, embeds, validators)
-└── types/          # TypeScript type definitions
+
+**Why XML tags?** Claude 4.x models respond 20-30% better to structured XML prompts vs plain text.
+
+### Cost Optimization
+
+#### Enable Prompt Caching
+```typescript
+system: [{
+  text: systemPrompt,
+  cache_control: { type: "ephemeral" }  // 90% cost savings on repeated prompts
+}]
 ```
 
-## Before Each Implementation
+**When to cache:**
+- System prompts (identical every request)
+- Large context documents
+- RAG retrieved content
+- Tool definitions
 
-1. Check README.md for alignment with project goals
-2. Check TODO.md for current task and dependencies
-3. Follow existing patterns in the codebase
-4. Test with Discord interactions before marking complete
+#### Hybrid Model Routing
+```typescript
+function selectModel(complexity: number): string {
+  if (complexity < 40) return 'claude-haiku-4-5-20251001';
+  if (complexity < 70) return 'claude-sonnet-4-5-20250929';
+  return 'claude-opus-4-5-20251101';
+}
+```
+
+### Extended Thinking
+
+```typescript
+thinking: {
+  type: "enabled",
+  budget_tokens: 8000  // Adjust based on complexity
+}
+```
+
+**Use when:**
+- Multi-step reasoning required
+- Comparing multiple concepts
+- Strategic analysis
+- Complex debugging
+
+### Format Control
+
+Claude 4.x tends toward "AI slop" formatting. Control explicitly:
+
+```xml
+<formatting_guidelines>
+Write in clear, flowing prose using complete paragraphs and sentences. Use standard paragraph breaks for organization.
+
+Reserve markdown primarily for:
+- Inline code: `code`
+- Code blocks: ```language```
+- Simple headings: ### Heading
+
+DO NOT use ordered lists (1. ...) or unordered lists (*) unless:
+a) Presenting truly discrete items where a list is best, OR
+b) User explicitly requests a list
+
+Instead, incorporate information naturally into sentences. Prose is more readable than excessive formatting.
+</formatting_guidelines>
+```
+
+### Tool Usage Patterns
+
+**Proactive (for coding assistants):**
+```xml
+<default_to_action>
+By default, implement changes rather than only suggesting them. If user intent is unclear, infer the most useful action and proceed, using tools to discover missing details instead of guessing.
+</default_to_action>
+```
+
+**Conservative (for sensitive operations):**
+```xml
+<do_not_act_before_instructions>
+Do not make changes unless clearly instructed. When user intent is ambiguous, default to providing information and recommendations rather than taking action.
+</do_not_act_before_instructions>
+```
+
+### Parallel Tool Calling
+
+```xml
+<parallel_tool_efficiency>
+If you intend to call multiple tools with no dependencies between them, make all independent calls in parallel. This significantly improves response time.
+
+Examples:
+- Reading 3 files → 3 parallel read_file calls
+- Multiple searches → parallel search calls
+
+Only call sequentially when one call depends on another's output.
+</parallel_tool_efficiency>
+```
+
+### Common Pitfalls to Avoid
+
+#### Over-Engineering
+```xml
+<avoid_overengineering>
+Only make changes directly requested or clearly necessary. Keep solutions simple. Don't add features, refactor code, or make "improvements" beyond what was asked. The right complexity is the minimum needed.
+</avoid_overengineering>
+```
+
+#### Hallucinations in Code
+```xml
+<investigate_before_answering>
+ALWAYS read and understand relevant files before proposing code edits. Do not speculate about code you haven't inspected. If user references a file, you MUST open and inspect it first.
+</investigate_before_answering>
+```
+
+---
+
+## Gemini Optimization Rules
+
+### Model Selection
+- **Gemini 3.0 Flash** (`gemini-3.0-flash-001`): Speed, extraction, simple chat
+- **Gemini 3.0 Pro** (`gemini-3.0-pro-001`): Complex reasoning, coding, agents
+
+### Prompting Strategy
+
+#### The "Reasoning" System Prompt
+```text
+You are a very strong reasoner and planner.
+1. PROACTIVELY PLAN: Before answering, outline your logic steps.
+2. CHECK CONSTRAINTS: Verify against rules <rules>...</rules>.
+3. RISK ASSESSMENT: Consider consequences of tool use.
+```
+
+### Key Settings
+
+**Temperature:** Keep at **1.0** for Gemini 3 (don't lower)
+
+**Partial Input (JSON Mode):**
+```json
+User: "Extract data."
+Assistant (Pre-fill): ```json
+{
+```
+
+### Cost & Performance
+- Use Context Caching for system prompts > 32k tokens
+- Use File API for large documents instead of text injection
+- Response Prefixes: Pre-fill code blocks to skip conversational filler
+
+---
+
+## Multi-Agent Coordination
+
+### Coordination Patterns
+
+**Sequential:** Tasks with dependencies
+```
+product-manager → fullstack-developer → code-reviewer → documentation-engineer
+```
+
+**Parallel:** Independent tasks
+```
+Launch simultaneously:
+- api-designer (backend API)
+- frontend-architect (UI/UX)
+- postgres-pro (database schema)
+```
+
+**Hybrid:** Mix of sequential and parallel
+
+**Orchestration:** Use `multi-agent-coordinator` for tasks requiring 4+ agents
+
+### Agent Communication
+
+- **Shared context:** `docs/MEMORY-BANK.md`
+- **Agent-specific memory:** `docs/[AGENT-NAME]-MEMORY.md`
+- **Updates:** Each agent updates their section after completing work
+- **Handoffs:** Clear handoff messages with next steps
+
+---
+
+## Documentation Protocols
+
+### SOP Documentation
+
+For every project, maintain `docs/SOP.md` with:
+- Prompts and approaches used
+- Step-by-step implementation details
+- Architectural decisions and rationale
+- Key files and purposes
+- Reproducibility checklist
+
+**Update triggers:**
+- New feature implemented
+- Architecture decision made
+- New dependency added
+- Deployment/testing done
+- Issue resolved or optimization made
+
+**Owner:** `documentation-engineer` agent maintains this
+
+### Memory Bank Protocol
+
+Maintain `docs/MEMORY-BANK.md` with:
+1. Project Identity (name, purpose, tech stack, constraints)
+2. Current State (done, in progress, planned)
+3. Key Decisions Log (decisions with rationale)
+4. Context for AI (naming conventions, patterns, file organization)
+5. Known Issues (bugs, technical debt, blockers)
+6. Quick Reference (commands, environment vars, key files)
+7. Agent Collaboration Log (who did what, when)
+
+**Update constantly:**
+- After every major decision
+- After implementing features
+- When discovering bugs or issues
+- When changing architecture
+- After adding dependencies
+
+**Benefit:** 40-60% token reduction through efficient caching
+
+---
+
+## Communication Style
+
+### Be Concise and Direct
+- Short, clear sentences
+- Fact-based progress reports (not self-congratulatory)
+- Skip verbose summaries unless explicitly requested
+- Jump directly to next actions when appropriate
+
+### Professional Objectivity
+- Prioritize technical accuracy over validation
+- Focus on facts and problem-solving
+- Provide direct, objective technical info
+- Disagree when necessary with respectful correction
+- Avoid excessive validation phrases
+
+---
+
+## Implementation Notes
+
+These rules follow Cursor's best practices:
+- **Focused**: Each section addresses specific scenarios
+- **Actionable**: Clear triggers and examples
+- **Avoid duplication**: Don't explain what agents already know
+- **No edge cases**: Focus on frequent, common patterns
+
+---
+
+## Related Documentation
+
+**Claude Code:**
+- `~/.claude/QUICKSTART.md` - Quick reference guide
+- `~/.claude/agents/` - Agent definitions
+- `~/.claude/skills/` - Skill library
+- `~/.claude/templates/` - Templates (Memory Bank, etc.)
+
+**Cursor:**
+- `~/.cursor/agents/` - Volt Agent definitions
+- `.cursor/agents/` - Project-specific agents
+- `docs/CURSOR-COMMANDS-REFERENCE.md` - Cursor shortcuts
+
+**Technical Standards:**
+- `docs/MATERIAL-WEB-REFERENCE.md` - Frontend design system
+- `docs/LANGCHAIN-RAG-SETUP-TEMPLATE.md` - RAG setup guide
+- `docs/MCP-SERVER-REFERENCE.md` - MCP development guide
+
+**Project Context:**
+- `docs/MEMORY-BANK.md` - Project context (CACHE THIS!)
+- `docs/SOP.md` - Standard operating procedures
+- `docs/[AGENT-NAME]-MEMORY.md` - Agent-specific memory
+
+---
+
+**Last Updated:** January 21, 2026  
+**Version:** 3.0 (Integrated Claude + Cursor)  
+**Optimized for:** Claude 4.5 Series, Gemini 3 Series, Cursor Volt Agents, Claude Code Agents + Skills
